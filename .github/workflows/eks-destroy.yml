@@ -1,0 +1,37 @@
+name: Destroy EKS Resources
+
+on:
+  workflow_dispatch:
+
+permissions:
+      id-token: write # This is required for aws oidc connection
+      contents: read # This is required for actions/checkout
+      pull-requests: write # This is required for gh bot to comment PR
+env:
+  TF_LOG: INFO
+  TF_VARS_eks_role: ${{ secrets.AWS_ROLE }}
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-2
+          role-session-name: GitHub-OIDC-TERRAFORM
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        working-directory: eks
+        run: terraform init
+
+      - name: Terraform Destroy
+        working-directory: eks
+        run: terraform destroy -auto-approve

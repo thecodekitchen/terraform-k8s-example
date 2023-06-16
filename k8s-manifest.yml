@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: surrealdb
+  labels:
+    app: surrealdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: surrealdb
+  template:
+    metadata:
+      labels:
+        app: surrealdb
+    spec:
+      containers:
+      - name: surrealdb
+        image: codekitchenxyz/surrealdb:memory
+        ports:
+        - containerPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bardchat
+  labels:
+    app: bardchat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bardchat
+  template:
+    metadata:
+      labels:
+        app: bardchat
+    spec:
+      containers:
+      - name: bardchat
+        image: codekitchenxyz/bardchat:0.2.0
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: surrealdb
+  labels:
+    app: surrealdb
+spec:
+  selector:
+    app: surrealdb
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bardchat
+  labels:
+    app: bardchat
+spec:
+  selector:
+    app: bardchat
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer

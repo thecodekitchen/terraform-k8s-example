@@ -1,0 +1,57 @@
+name: Deploy App to EKS Cluster
+
+on:
+  workflow_dispatch:
+
+permissions:
+      id-token: write # This is required for aws oidc connection
+      contents: read # This is required for actions/checkout
+      pull-requests: write # This is required for gh bot to comment PR
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-2
+          role-session-name: GitHub-OIDC-TERRAFORM
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        working-directory: eks
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: eks
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        env:
+          TF_VAR_eks_role: ${{ secrets.AWS_ROLE }}
+        id: plan
+        working-directory: eks
+        run: terraform plan -no-color
+      
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_eks_role: ${{ secrets.AWS_ROLE }}
+        working-directory: eks
+        run: terraform apply -auto-approve
+        
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region us-east-2 --name bardchat_eks_cluster 
+
+       # Now you can run kubectl commands
+      - name: Deploy to EKS
+        run: kubectl apply -f k8s-manifest.yml 

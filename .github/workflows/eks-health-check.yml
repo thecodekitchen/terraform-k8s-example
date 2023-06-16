@@ -1,0 +1,31 @@
+name: Check EKS Health
+
+on:
+  workflow_dispatch:
+
+permissions:
+      id-token: write # This is required for aws oidc connection
+      contents: read # This is required for actions/checkout
+      pull-requests: write # This is required for gh bot to comment PR
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-2
+          role-session-name: GitHub-OIDC-TERRAFORM
+          
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region us-east-2 --name bardchat_eks_cluster
+        
+      - name: Check Pods
+        run: kubectl get pods
+        
+      - name: Check Services
+        run: kubectl get services
