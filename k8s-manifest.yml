@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: surrealdb
-  labels:
-    app: surrealdb
 spec:
   replicas: 1
   selector:
@@ -14,19 +12,36 @@ spec:
       labels:
         app: surrealdb
     spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
       containers:
       - name: surrealdb
         image: codekitchenxyz/surrealdb:memory
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
         ports:
         - containerPort: 8000
-
+          name: surrealdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: surrealdb
+spec:
+  ports:
+  - port: 8000
+  selector:
+    app: surrealdb
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bardchat
-  labels:
-    app: bardchat
 spec:
   replicas: 1
   selector:
@@ -37,40 +52,28 @@ spec:
       labels:
         app: bardchat
     spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
       containers:
       - name: bardchat
         image: codekitchenxyz/bardchat:0.2.0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
         ports:
         - containerPort: 8080
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: surrealdb
-  labels:
-    app: surrealdb
-spec:
-  selector:
-    app: surrealdb
-  ports:
-    - protocol: TCP
-      port: 8000
-      targetPort: 8000
-  type: ClusterIP
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: bardchat
-  labels:
-    app: bardchat
 spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
   selector:
     app: bardchat
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
-  type: LoadBalancer
