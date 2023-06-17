@@ -34,7 +34,7 @@ jobs:
 
       - name: Get Username
         working-directory: aks
-        run: echo "$USERNAME=(terraform output -raw cluster_username)" >> GITHUB_ENV
+        run: echo "$USERNAME=$(terraform output -raw cluster_username)" >> GITHUB_ENV
 
       - name: Print Username
         run: |
