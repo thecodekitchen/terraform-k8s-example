@@ -36,7 +36,7 @@ jobs:
         working-directory: aks
         run: terraform apply -auto-approve
         
-      - name: Set Kube Config
+      - name: Deploy App To Cluster
         working-directory: aks
         run: |
           resource_group_name=$(terraform output -raw resource_group_name)
