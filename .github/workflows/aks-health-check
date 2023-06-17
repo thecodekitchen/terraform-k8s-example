@@ -1,1 +1,50 @@
+on:
+  workflow_dispatch:
+  
+permissions:
+      id-token: write
+      contents: read
+      
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
 
+    env:
+      ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Az CLI login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZ_CREDENTIALS }}
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: aks
+        run: terraform init
+        
+      - name: Check Cluster Health
+        working-directory: aks
+        run: |
+          resource_group_name=$(terraform output -raw resource_group_name)
+          az aks list \
+            --resource-group $resource_group_name \
+            --query "[].{\"K8s cluster name\":name}" \
+            --output table
+          echo "$(terraform output kube_config)" > ./azurek8s
+          sed -i 's/^<<EOT//' ./azurek8s
+          sed -i 's/EOT$//' ./azurek8s
+          cat ./azurek8s
+          export KUBECONFIG=./azurek8s
+          kubectl get nodes
+          kubectl get pods
+          kubectl get services
