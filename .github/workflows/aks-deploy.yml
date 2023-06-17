@@ -2,7 +2,11 @@ name: Deploy App to AKS
 
 on:
   workflow_dispatch:
-
+  
+permissions:
+      id-token: write
+      contents: read
+      
 jobs:
   terraform:
     runs-on: ubuntu-latest
