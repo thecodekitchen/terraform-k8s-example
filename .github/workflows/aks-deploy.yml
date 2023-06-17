@@ -61,7 +61,7 @@ jobs:
           cat ./azurek8s
           export KUBECONFIG=./azurek8s
           kubectl get nodes
-          kubectl apply -f k8s-manifest.yml
+          kubectl apply -f ../k8s-manifest.yml
           kubectl get pods
           kubectl get services
 
