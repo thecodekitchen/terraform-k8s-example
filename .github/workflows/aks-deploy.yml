@@ -32,9 +32,17 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Get Username
+      - name: Terraform Apply
+        working-directory: aks
+        run: terraform apply -auto-approve
+        
+      - name: Get Cluster Name
         working-directory: aks
         run: |
-          username=$(terraform output -raw cluster_username)
-          echo $username
+          cluster=$(terraform output -raw kubernetes_cluster_name)
+          echo $cluster
+          
+      - name: Terraform Destroy
+        working-directory: aks
+        run: terraform destroy -auto-approve
 
