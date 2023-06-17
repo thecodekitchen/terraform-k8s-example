@@ -56,6 +56,8 @@ jobs:
             --query "[].{\"K8s cluster name\":name}" \
             --output table
           echo "$(terraform output kube_config)" > ./azurek8s
+          sed -i 's/^<<EOT//' ./azurek8s
+          sed -i 's/EOT$//' ./azurek8s
           cat ./azurek8s
           export KUBECONFIG=./azurek8s
           kubectl get nodes
