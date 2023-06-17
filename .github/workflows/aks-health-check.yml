@@ -1,3 +1,5 @@
+name: Check AKS Cluster Health
+
 on:
   workflow_dispatch:
   
