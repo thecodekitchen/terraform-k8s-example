@@ -36,13 +36,19 @@ jobs:
         working-directory: aks
         run: terraform apply -auto-approve
         
-      - name: Get Cluster Name
+      - name: Set Kube Config
         working-directory: aks
         run: |
-          cluster=$(terraform output -raw kubernetes_cluster_name)
-          echo $cluster
-          
-      - name: Terraform Destroy
-        working-directory: aks
-        run: terraform destroy -auto-approve
+          resource_group_name=$(terraform output -raw resource_group_name)
+          az aks list \
+            --resource-group $resource_group_name \
+            --query "[].{\"K8s cluster name\":name}" \
+            --output table
+          echo "$(terraform output kube_config)" > ./azurek8s
+          cat ./azurek8s
+          export KUBECONFIG=./azurek8s
+          kubectl get nodes
+          kubectl apply -f k8s-manifest.yml
+          kubectl get pods
+          kubectl get services
 
