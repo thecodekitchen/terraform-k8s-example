@@ -10,12 +10,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
     steps:
     - uses: 'actions/checkout@v3'
 
