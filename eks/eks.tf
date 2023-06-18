@@ -1,9 +1,28 @@
-# IMPORTANT: Must call backend action prior to running this configuration.
+variable "backend_bucket_name" {
+  type: string
+  default: ""
+}
+
+variable "backend_bucket_key" {
+  type: string
+  default: ""
+}
+
+variable "region" {
+  type: string
+  default: "us-east-2"
+}
+
+variable "project_name" {
+  type: string
+  default: "project"
+}
+
 terraform {
     backend "s3" {
-        bucket = "bardchat-tf-state"
-        key = "bardchat.tfstate"
-        region = "us-east-2"
+        bucket = var.backend_bucket_name
+        key = var.backend_bucket_key
+        region = var.region
     }
     required_providers {
       aws = {
@@ -14,12 +33,12 @@ terraform {
 }
 
 provider "aws" {
-    region = "us-east-2"
+    region = var.region
 }
 
 # IAM
-resource "aws_iam_role" "bardchat_cluster_role" {
-  name = "bardchat_cluster_role"
+resource "aws_iam_role" "cluster_role" {
+  name = "${var.project_name}_cluster_role"
 
   assume_role_policy = <<POLICY
 {
@@ -37,23 +56,23 @@ resource "aws_iam_role" "bardchat_cluster_role" {
 POLICY
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_IAMFullAccess_cluster" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_IAMFullAccess_cluster" {
   policy_arn = "arn:aws:iam::aws:policy/IAMFullAccess"
-  role       = aws_iam_role.bardchat_cluster_role.name
+  role       = aws_iam_role.cluster_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_AmazonEKSClusterPolicy" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.bardchat_cluster_role.name
+  role       = aws_iam_role.cluster_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_AmazonEKSVPCResourceController" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSVPCResourceController" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  role       = aws_iam_role.bardchat_cluster_role.name
+  role       = aws_iam_role.cluster_role.name
 }
 
-resource "aws_iam_role" "bardchat_node_role" {
-  name = "bardchat_node"
+resource "aws_iam_role" "node_role" {
+  name = "${var.project_name}_node"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -67,24 +86,24 @@ resource "aws_iam_role" "bardchat_node_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_IAMFullAccess_node" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_IAMFullAccess_node" {
   policy_arn = "arn:aws:iam::aws:policy/IAMFullAccess"
-  role       = aws_iam_role.bardchat_node_role.name
+  role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_AmazonEKSWorkerNodePolicy" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.bardchat_node_role.name
+  role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_AmazonEKS_CNI_Policy" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.bardchat_node_role.name
+  role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bardchat_AmazonEC2ContainerRegistryReadOnly" {
+resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.bardchat_node_role.name
+  role       = aws_iam_role.node_role.name
 }
 
 # VPC
@@ -140,8 +159,8 @@ resource "aws_subnet" "public2" {
 
 #EKS
 resource "aws_eks_cluster" "k8s_cluster" {
-  name = "bardchat_eks_cluster"
-  role_arn = aws_iam_role.bardchat_cluster_role.arn
+  name = "${var.project_name}_eks_cluster"
+  role_arn = aws_iam_role.cluster_role.arn
   vpc_config {
     subnet_ids = [aws_subnet.public1.id, aws_subnet.public2.id]
   }
@@ -149,8 +168,8 @@ resource "aws_eks_cluster" "k8s_cluster" {
 
 resource "aws_eks_node_group" "k8s_node_group" {
   cluster_name    = aws_eks_cluster.k8s_cluster.name
-  node_group_name = "bardchat_eks_node_group"
-  node_role_arn   = aws_iam_role.bardchat_node_role.arn
+  node_group_name = "${var.project_name}_eks_node_group"
+  node_role_arn   = aws_iam_role.node_role.arn
   subnet_ids      = [aws_subnet.public1.id, aws_subnet.public2.id]
 
   scaling_config {
