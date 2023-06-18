@@ -44,6 +44,9 @@ jobs:
       run: exit 1
     
     - name: Terraform Apply
+      env:
+        TF_VAR_gke_username: ${{ secrets.GKE_USER }}
+        TF_VAR_gke_password: ${{ secrets.GKE_PASS }}
       working-directory: gke
       run: terraform apply -auto-approve
 
