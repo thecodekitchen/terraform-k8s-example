@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
 terraform {
+  backend "gcs" {
+    bucket = "bardchat-tf-state"
+    prefix = "terraform/state"
+  }
   required_providers {
     google = {
       source  = "hashicorp/google"
