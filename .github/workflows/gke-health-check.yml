@@ -38,6 +38,7 @@ jobs:
       name: 'gcloud'
       working-directory: gke
       run: |-
+        gcloud components install gke-gcloud-auth-plugin
         gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region=us-central1
         kubectl get nodes
         kubectl get pods
