@@ -1,0 +1,39 @@
+name: Destroy GKE Resources
+
+on:
+  workflow_dispatch:
+  
+permissions:
+      id-token: write
+      contents: read
+      
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: 'actions/checkout@v3'
+
+    # Configure Workload Identity Federation via a credentials file.
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+        service_account: 'my-service-account@my-project.iam.gserviceaccount.com'
+
+    # Install gcloud, `setup-gcloud` automatically picks up authentication from `auth`.
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+    
+    - name: Terraform Init
+      working-directory: gke
+      run: terraform init -upgrade
+
+    - name: Terraform Destroy
+      working-directory: gke
+      run: terraform destroy -auto-approve

@@ -1,0 +1,59 @@
+name: Deploy App to GKE
+
+on:
+  workflow_dispatch:
+  
+permissions:
+      id-token: write
+      contents: read
+      
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: 'actions/checkout@v3'
+
+    # Configure Workload Identity Federation via a credentials file.
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+        service_account: 'my-service-account@my-project.iam.gserviceaccount.com'
+
+    # Install gcloud, `setup-gcloud` automatically picks up authentication from `auth`.
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+    
+    - name: Terraform Init
+      working-directory: gke
+      run: terraform init -upgrade
+
+    - name: Terraform Plan
+      id: plan
+      working-directory: gke
+      run: terraform plan
+
+    - name: Terraform Plan Status
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
+    
+    - name: Terraform Apply
+      working-directory: gke
+      run: terraform apply -auto-approve
+
+    # Now you can run gcloud commands authenticated as the impersonated service account.
+    - id: 'gcloud'
+      name: 'gcloud'
+      working-directory: gke
+      run: |-
+        gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region=us-central1
+        kubectl get nodes
+        kubectl apply -f ../k8s-manifest.yml
+        kubectl get pods
+        kubectl get services

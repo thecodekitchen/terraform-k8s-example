@@ -1,4 +1,4 @@
-name: Test GCP
+name: Check GKE Health
 
 on:
   workflow_dispatch:
@@ -25,8 +25,20 @@ jobs:
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
 
-    # Now you can run gcloud commands authenticated as the impersonated service account.
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+    
+    - name: Terraform Init
+      working-directory: gke
+      run: terraform init -upgrade
+
     - id: 'gcloud'
       name: 'gcloud'
+      working-directory: gke
       run: |-
-        gcloud help
+        gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region=us-central1
+        kubectl get nodes
+        kubectl get pods
+        kubectl get services
