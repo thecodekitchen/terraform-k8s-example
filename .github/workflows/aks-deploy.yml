@@ -10,13 +10,6 @@ permissions:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-
-    env:
-      ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
-      ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
-      ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
-      ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -30,11 +23,48 @@ jobs:
         with:
           terraform_wrapper: false
 
+      - name: Backend Terraform Init
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        run: terraform init
+
+      - name: Backend Terraform Plan
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        id: backend_plan
+        run: terraform plan
+      
+      - name: Backend Terraform Plan Status
+        if: steps.backend_plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Backend Terraform Apply
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        run: terraform apply -auto-approve
+        
       - name: Terraform Init
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
         working-directory: aks
         run: terraform init
 
       - name: Terraform Plan
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
         working-directory: aks
         id: plan
         run: terraform plan
@@ -44,6 +74,10 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
         working-directory: aks
         run: terraform apply -auto-approve
         

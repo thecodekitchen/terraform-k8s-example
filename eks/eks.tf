@@ -1,21 +1,21 @@
 variable "backend_bucket_name" {
-  type: string
-  default: ""
+  type = string
+  default = ""
 }
 
 variable "backend_bucket_key" {
-  type: string
-  default: ""
+  type = string
+  default = ""
 }
 
 variable "region" {
-  type: string
-  default: "us-east-2"
+  type = string
+  default = "us-east-2"
 }
 
 variable "project_name" {
-  type: string
-  default: "project"
+  type = string
+  default = "project"
 }
 
 terraform {
@@ -56,17 +56,17 @@ resource "aws_iam_role" "cluster_role" {
 POLICY
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_IAMFullAccess_cluster" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_IAMFullAccess_cluster" {
   policy_arn = "arn:aws:iam::aws:policy/IAMFullAccess"
   role       = aws_iam_role.cluster_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSClusterPolicy" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.cluster_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSVPCResourceController" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_AmazonEKSVPCResourceController" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
   role       = aws_iam_role.cluster_role.name
 }
@@ -86,22 +86,22 @@ resource "aws_iam_role" "node_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_IAMFullAccess_node" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_IAMFullAccess_node" {
   policy_arn = "arn:aws:iam::aws:policy/IAMFullAccess"
   role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKSWorkerNodePolicy" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEKS_CNI_Policy" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   role       = aws_iam_role.node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "${var.project_name}_AmazonEC2ContainerRegistryReadOnly" {
+resource "aws_iam_role_policy_attachment" "$${var.project_name}_AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.node_role.name
 }

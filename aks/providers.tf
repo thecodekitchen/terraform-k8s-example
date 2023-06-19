@@ -2,10 +2,10 @@ terraform {
   required_version = ">=1.0"
 
   backend "azurerm" {
-    resource_group_name  = "rg-bardchat-tf"
-    storage_account_name = "sabardchattf"
-    container_name       = "terraform-state"
-    key                  = "terraform.tfstate"
+    resource_group_name  = var.backend_rg_name
+    storage_account_name = var.backend_sa_name
+    container_name       = var.backend_bucket_name
+    key                  = var.backend_bucket_key
   }
   
   required_providers {

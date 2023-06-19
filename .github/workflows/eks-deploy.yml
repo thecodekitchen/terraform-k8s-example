@@ -24,6 +24,31 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
+      - name: Backend Terraform Init
+        working-directory: eks-backend
+        run: terraform init
+
+      - name: Backend Terraform Validate
+        working-directory: eks-backend
+        run: terraform validate -no-color
+
+      - name: Backend Terraform Plan
+        id: backend_plan
+        working-directory: eks-backend
+        env:
+          TF_VAR_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+        run: terraform plan -no-color
+      
+      - name: Backend Terraform Plan Status
+        if: steps.backend_plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Backend Terraform Apply
+        working-directory: eks-backend
+        env:
+          TF_VAR_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+        run: terraform apply -auto-approve
+
       - name: Terraform Init
         working-directory: eks
         run: terraform init
@@ -34,7 +59,8 @@ jobs:
 
       - name: Terraform Plan
         env:
-          TF_VAR_eks_role: ${{ secrets.AWS_ROLE }}
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_bucket_key: ${{ vars.BACKEND_BUCKET_KEY }}
         id: plan
         working-directory: eks
         run: terraform plan -no-color
@@ -45,7 +71,8 @@ jobs:
 
       - name: Terraform Apply
         env:
-          TF_VAR_eks_role: ${{ secrets.AWS_ROLE }}
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_bucket_key: ${{ vars.BACKEND_BUCKET_KEY }}
         working-directory: eks
         run: terraform apply -auto-approve
         

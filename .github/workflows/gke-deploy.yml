@@ -29,12 +29,39 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_wrapper: false
+
+    - name: Backend Terraform Init
+      env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+      working-directory: gke-backend
+      run: terraform init
+
+    - name: Backend Terraform Plan
+      env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+      id: backend-plan
+      working-directory: gke-backend
+      run: terraform plan
+
+    - name: Backend Terraform Plan Status
+      if: steps.backend-plan.outcome == 'failure'
+      run: exit 1
+    
+    - name: Backend Terraform Apply
+      env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+      working-directory: gke-backend
+      run: terraform apply -auto-approve
     
     - name: Terraform Init
+      env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
       working-directory: gke
       run: terraform init
 
     - name: Terraform Plan
+      env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
       id: plan
       working-directory: gke
       run: terraform plan
@@ -45,6 +72,7 @@ jobs:
     
     - name: Terraform Apply
       env:
+        TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
         TF_VAR_gke_username: ${{ secrets.GKE_USER }}
         TF_VAR_gke_password: ${{ secrets.GKE_PASS }}
       working-directory: gke

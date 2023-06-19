@@ -1,9 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
+variable "backend_bucket_name" {
+  type = string
+  default = "tf-state-backend"
+}
 
 terraform {
   backend "gcs" {
-    bucket = "bardchat-tf-state"
+    bucket = var.backend_bucket_name
     prefix = "terraform/state"
   }
   required_providers {

@@ -21,3 +21,23 @@ variable "msi_id" {
   description = "The Managed Service Identity ID. Set this value if you're running this example using Managed Identity as the authentication method."
   default     = null
 }
+
+variable "backend_rg_name" {
+    type = string
+    default = "tf-state-resources"
+}
+
+variable "backend_sa_name" {
+    type = string
+    default = "tf-state-storage-account"
+}
+
+variable "backend_bucket_name" {
+    type = string
+    default = "tf-state-bucket"
+}
+
+variable "backend_bucket_key" {
+    type = string
+    default = "backend.tfstate"
+}
