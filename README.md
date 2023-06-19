@@ -20,8 +20,9 @@ there becomes only one set of credentials to manage for all of your infrastructu
 # How can I use this repo?
 This repo includes Terraform modules for provisioning a managed Kubernetes cluster on AWS Elastic Kubernetes Service, Azure Kubernetes Service, or Google Kubernetes Engine.
 The actions are written with the assumption that the resources to be deployed are specified in a Kubernetes manifest file.
-They could, however, easily be modified to install a Helm chart on the cluster since the actions are configured to use kubectl for the deployment step.
 
 ## With Kubernetes Manifest
 The simplest way to deploy a set of resources to the clusters provisioned with these modules is to
-describe your deployments, services, and other resources in a Kubernetes manifest file like the one provided as an example.
+describe your deployments, services, and other resources in a Kubernetes manifest file like the one provided as an example. Simply clone the template on your own account and fill in the secrets and variables with authentication data from your desired provider using the secrets and variables/actions tab of the settings menu on your repo. Then replace the example manifest with your own and the actions should deploy, destroy, and run basic health checks on your application!
+
+## Helm Chart Support Coming Soon!
