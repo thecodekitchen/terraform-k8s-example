@@ -1,0 +1,101 @@
+name: Deploy Helm Chart to EKS
+
+on:
+  workflow_dispatch:
+
+permissions:
+      id-token: write # This is required for aws oidc connection
+      contents: read # This is required for actions/checkout
+      pull-requests: write # This is required for gh bot to comment PR
+jobs:
+  provision_infra:
+    runs-on: ubuntu-latest
+    outputs:
+        kubeconfig: ${{ steps.aws.outputs.kubeconfig }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-2
+          role-session-name: GitHub-OIDC-TERRAFORM
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Backend Terraform Init
+        working-directory: eks-backend
+        run: terraform init
+
+      - name: Backend Terraform Validate
+        working-directory: eks-backend
+        run: terraform validate -no-color
+
+      - name: Backend Terraform Plan
+        id: backend_plan
+        working-directory: eks-backend
+        env:
+          TF_VAR_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+        run: terraform plan -no-color
+      
+      - name: Backend Terraform Plan Status
+        if: steps.backend_plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Backend Terraform Apply
+        working-directory: eks-backend
+        env:
+          TF_VAR_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+        run: terraform apply -auto-approve
+
+      - name: Terraform Init
+        working-directory: eks
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: eks
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_bucket_key: ${{ vars.BACKEND_BUCKET_KEY }}
+        id: plan
+        working-directory: eks
+        run: terraform plan -no-color
+      
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_bucket_key: ${{ vars.BACKEND_BUCKET_KEY }}
+        working-directory: eks
+        run: terraform apply -auto-approve
+        
+      - name: Update kubeconfig
+        id: aws
+        run: |
+          aws eks update-kubeconfig --region us-east-2 --name bardchat_eks_cluster
+          ../k8s-sa-kubeconfig
+          echo "kubeconfig=$KUBECONFIG" >> $GITHUB_OUTPUT
+  deploy:
+    runs-on: ubuntu-latest
+    needs: provision_infra
+    steps:
+    - uses: 'actions/checkout@v3'
+
+    - name: 'deploy'
+      uses: 'deliverybot/helm@v1'
+      with:
+        release: 'nginx'
+        namespace: 'default'
+        chart: ${{ vars.CHART_NAME }}
+        token: ${{ github.token }}
+      env:
+        KUBECONFIG_FILE: ${{ needs.provision_infra.outputs.kubeconfig }} 

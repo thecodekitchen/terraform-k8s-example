@@ -1,0 +1,118 @@
+name: Deploy Helm Chart to AKS
+
+on:
+  workflow_dispatch:
+  
+permissions:
+      id-token: write
+      contents: read
+      
+jobs:
+  provision_infra:
+    runs-on: ubuntu-latest
+    outputs:
+        kubeconfig: ${{ steps.az.outputs.kubeconfig }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Az CLI login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZ_CREDENTIALS }}
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: Backend Terraform Init
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        run: terraform init
+
+      - name: Backend Terraform Plan
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        id: backend_plan
+        run: terraform plan
+      
+      - name: Backend Terraform Plan Status
+        if: steps.backend_plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Backend Terraform Apply
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks-backend
+        run: terraform apply -auto-approve
+        
+      - name: Terraform Init
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks
+        run: terraform init
+
+      - name: Terraform Plan
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks
+        id: plan
+        run: terraform plan
+      
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_backend_bucket_name: ${{ vars.BACKEND_BUCKET_NAME }}
+          TF_VAR_backend_sa_name: ${{ vars.BACKEND_SA_NAME }}
+          TF_VAR_backend_rg_name: ${{ vars.BACKEND_RG_NAME }}
+        working-directory: aks
+        run: terraform apply -auto-approve
+        
+      - name: Deploy App To Cluster
+        id: az
+        working-directory: aks
+        run: |
+          resource_group_name=$(terraform output -raw resource_group_name)
+          az aks list \
+            --resource-group $resource_group_name \
+            --query "[].{\"K8s cluster name\":name}" \
+            --output table
+          echo "$(terraform output kube_config)" > ./azurek8s
+          sed -i 's/^<<EOT//' ./azurek8s
+          sed -i 's/EOT$//' ./azurek8s
+          cat ./azurek8s
+          export KUBECONFIG=./azurek8s
+          kubectl get nodes
+          ../k8s-sa-kubeconfig
+          echo "kubeconfig=$KUBECONFIG" >> $GITHUB_OUTPUT
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: provision_infra
+    steps:
+    - uses: 'actions/checkout@v3'
+
+    - name: 'deploy'
+      uses: 'deliverybot/helm@v1'
+      with:
+        release: 'nginx'
+        namespace: 'default'
+        chart: ${{ vars.CHART_NAME }}
+        token: ${{ github.token }}
+      env:
+        KUBECONFIG_FILE: ${{ needs.provision_infra.outputs.kubeconfig }}
