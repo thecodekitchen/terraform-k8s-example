@@ -31,3 +31,5 @@ describe your deployments, services, and other resources in a Kubernetes manifes
 ## Deploy a Helm Chart (experimental)
 
 You can deploy a Helm chart by specifying a name for it in the CHART_NAME variable in your repository variables (not secrets). Then, run the deploy-helm action for your desired platform. That's it!
+
+If you would like to deploy a custom Helm chart, simply upload its root directory into your repository and set the CHART_NAME variable to 'app'.
