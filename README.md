@@ -28,8 +28,3 @@ Instructions for configuring [AWS](https://aws.amazon.com/blogs/security/use-iam
 The simplest way to deploy a set of custom resources to the clusters provisioned with these modules is to
 describe your deployments, services, and other resources in a Kubernetes manifest file like the one provided as an example. Clone the template on your own account and fill in the secrets and variables with authentication data from your desired provider using the secrets and variables/actions tab of the settings menu on your repo. Then replace the example manifest with your own and the actions should deploy, destroy, and run basic health checks on your application.
 
-## Deploy a Helm Chart (experimental)
-
-You can deploy a Helm chart by specifying a name for it in the CHART_NAME variable in your repository variables (not secrets). Then, run the deploy-helm action for your desired platform. That's it!
-
-If you would like to deploy a custom Helm chart, simply upload its root directory into your repository and set the CHART_NAME variable to 'app'.
